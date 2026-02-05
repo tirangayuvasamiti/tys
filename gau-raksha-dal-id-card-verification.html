@@ -1,0 +1,346 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* --- CONTAINER --- */
+  #grd-verification-container {
+    font-family: 'Segoe UI', 'Roboto', Helvetica, Arial, sans-serif;
+    max-width: 420px;
+    margin: 40px auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Softer shadow */
+    overflow: hidden;
+    text-align: center;
+    border: 1px solid #eaeaea;
+  }
+
+  /* --- LIGHT HEADER DESIGN --- */
+  .grd-header {
+    /* Light Gradient: White to Pale Orange */
+    background: linear-gradient(180deg, #ffffff 0%, #fff3e0 100%);
+    padding: 35px 20px 85px 20px; /* Extra bottom padding for photo overlap */
+    color: #333;
+    position: relative;
+    border-bottom: 1px solid #ffe0b2;
+  }
+
+  /* Tricolor Bottom Strip (Kept as a border accent) */
+  .grd-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 6px; /* Thinner strip */
+    background: linear-gradient(to right, #ff9933 33%, #ffffff 33%, #ffffff 66%, #138808 66%);
+    z-index: 1;
+  }
+
+  .grd-header h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #d84315; /* Dark Orange Text */
+  }
+  
+  .grd-subtitle {
+    font-size: 0.9rem;
+    color: #555; /* Dark Grey */
+    margin-top: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* --- PHOTO SECTION --- */
+  .grd-photo-wrapper {
+    margin-top: -65px; 
+    position: relative;
+    display: inline-block;
+    z-index: 10;
+  }
+
+  .grd-photo {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 5px solid #ffffff; 
+    object-fit: cover;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  /* --- STATUS BADGE --- */
+  .grd-status {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 15px 0 5px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .status-verified {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
+  }
+  .status-failed {
+    background-color: #ffebee;
+    color: #b71c1c;
+    border: 1px solid #ffcdd2;
+  }
+
+  /* --- TEXT DETAILS --- */
+  .grd-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #222;
+    margin: 5px 0 0 0;
+  }
+
+  .grd-designation {
+    color: #ef6c00; /* Medium Orange */
+    font-weight: 700;
+    margin-bottom: 25px;
+    font-size: 1rem;
+    text-transform: uppercase;
+  }
+
+  /* --- INFO GRID --- */
+  .grd-details {
+    padding: 0 20px 30px 20px;
+  }
+
+  .grd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    text-align: left;
+    background: #fafafa; /* Very light grey/white */
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #eee;
+  }
+
+  .grd-full-width { grid-column: span 2; }
+
+  .grd-field-label {
+    font-size: 0.7rem;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+    font-weight: 600;
+  }
+
+  .grd-field-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  /* --- INPUTS & BUTTONS --- */
+  #grd-manual-search {
+    padding: 30px 20px;
+    display: none;
+  }
+  
+  #grd-manual-search input {
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1rem;
+    background: #fafafa;
+  }
+  
+  #grd-manual-search button {
+    padding: 12px 25px;
+    background: #ef6c00;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    width: 100%;
+    transition: background 0.2s;
+  }
+
+  #grd-manual-search button:hover {
+    background: #d84315;
+  }
+
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #ef6c00;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    animation: spin 1s linear infinite;
+    margin: 30px auto;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+
+<div id="grd-verification-container">
+  
+  <div class="grd-header">
+    <h2>Gau Raksha Dal</h2>
+    <div class="grd-subtitle">Tiranga Yuva Samiti</div>
+  </div>
+
+  <div id="loading-spinner" class="loader"></div>
+
+  <div id="grd-manual-search">
+    <p style="margin-bottom:10px; font-weight:600; color:#555;">Enter ID Number</p>
+    <input type="text" id="member-id-input" placeholder="e.g. TYS-GRD-TYM-1">
+    <button onclick="manualVerify()">Verify Identity</button>
+  </div>
+
+  <div id="result-card" style="display:none;">
+    <div class="grd-photo-wrapper">
+      <img id="v-photo" class="grd-photo" src="" alt="Photo" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+    </div>
+    
+    <div>
+      <span id="v-status" class="grd-status">Verifying...</span>
+    </div>
+
+    <h3 id="v-name" class="grd-name">--</h3>
+    <div id="v-designation-main" class="grd-designation">--</div>
+
+    <div class="grd-details">
+      <div class="grd-grid">
+        <div class="grd-full-width">
+          <div class="grd-field-label">ID Number</div>
+          <div id="v-id" class="grd-field-value" style="color:#d84315; font-family:monospace;">--</div>
+        </div>
+
+        <div>
+          <div class="grd-field-label">Blood Group</div>
+          <div id="v-blood" class="grd-field-value">--</div>
+        </div>
+        <div>
+          <div class="grd-field-label">Valid Until</div>
+          <div id="v-validity" class="grd-field-value">--</div>
+        </div>
+
+        <div>
+          <div class="grd-field-label">Father's Name</div>
+          <div id="v-father" class="grd-field-value">--</div>
+        </div>
+        <div>
+          <div class="grd-field-label">Date of Birth</div>
+          <div id="v-dob" class="grd-field-value">--</div>
+        </div>
+
+        <div class="grd-full-width">
+          <div class="grd-field-label">Address</div>
+          <div id="v-address" class="grd-field-value" style="font-size:0.95rem;">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- CONFIGURATION ---
+  const SHEET_ID = '1ehEiwGskDIHwUHJMSWrbjpSsaA8fTSkJ6hfuFLV3jhI';
+  const SHEET_GID = '0';
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+
+  function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+
+  function verifyMember(searchId) {
+    const spinner = document.getElementById('loading-spinner');
+    const resultCard = document.getElementById('result-card');
+    const manualSearch = document.getElementById('grd-manual-search');
+    
+    spinner.style.display = 'block';
+    resultCard.style.display = 'none';
+    manualSearch.style.display = 'none';
+
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        spinner.style.display = 'none';
+        const data = results.data;
+        const cleanSearchId = searchId.toString().trim().toLowerCase();
+
+        const member = data.find(row => 
+          row.id && row.id.toString().trim().toLowerCase() === cleanSearchId
+        );
+
+        resultCard.style.display = 'block';
+        const statusEl = document.getElementById('v-status');
+
+        if (member) {
+          statusEl.innerText = "Verified Identity";
+          statusEl.className = "grd-status status-verified";
+
+          const fullName = `${member.firstname} ${member.lastname || ''}`.trim();
+
+          document.getElementById('v-photo').src = member.photo_url || 'https://via.placeholder.com/150?text=No+Photo';
+          document.getElementById('v-name').innerText = fullName;
+          document.getElementById('v-designation-main').innerText = member.designation || 'Gau Rakshak';
+          
+          document.getElementById('v-id').innerText = member.id;
+          document.getElementById('v-blood').innerText = member.blood_group || '--';
+          document.getElementById('v-validity').innerText = member.validity || 'Lifetime';
+          document.getElementById('v-father').innerText = member.father_name || '--';
+          document.getElementById('v-dob').innerText = member.dob || '--';
+          document.getElementById('v-address').innerText = member.address || '--';
+        } else {
+          statusEl.innerText = "ID Not Found";
+          statusEl.className = "grd-status status-failed";
+          
+          document.getElementById('v-photo').src = 'https://via.placeholder.com/150?text=Unknown';
+          document.getElementById('v-name').innerText = "Unknown";
+          document.getElementById('v-designation-main').innerText = "Unverified";
+          
+          document.getElementById('v-id').innerText = searchId;
+          document.getElementById('v-blood').innerText = "--";
+          document.getElementById('v-validity').innerText = "--";
+          document.getElementById('v-father').innerText = "--";
+          document.getElementById('v-dob').innerText = "--";
+          document.getElementById('v-address').innerText = "--";
+        }
+      },
+      error: function(err) {
+        spinner.style.display = 'none';
+        manualSearch.style.display = 'block';
+        alert("Connection Error. Please reload.");
+      }
+    });
+  }
+
+  function manualVerify() {
+    const inputId = document.getElementById('member-id-input').value;
+    if(inputId) verifyMember(inputId);
+    else alert("Please enter ID Number");
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlId = getQueryParam('id');
+    if (urlId) verifyMember(urlId);
+    else {
+      document.getElementById('loading-spinner').style.display = 'none';
+      document.getElementById('grd-manual-search').style.display = 'block';
+    }
+  });
+</script>
