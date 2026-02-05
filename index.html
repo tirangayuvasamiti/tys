@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Verification & Exam Portal Index</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  background: linear-gradient(135deg,#e9f2ff,#f7f9fc);
+}
+.header{
+  background:#0b5ed7;
+  color:white;
+  padding:28px 15px;
+  text-align:center;
+}
+.header h1{
+  margin:0;
+  font-size:28px;
+}
+.header p{
+  margin:8px 0 0;
+  opacity:.95;
+}
+.container{
+  max-width:1000px;
+  margin:30px auto;
+  padding:0 15px;
+}
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+  gap:18px;
+}
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  transition:.25s;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 10px 24px rgba(0,0,0,.12);
+}
+.card h3{
+  margin:0 0 10px;
+  font-size:18px;
+  color:#0b5ed7;
+}
+.card p{
+  margin:0 0 16px;
+  font-size:14px;
+  color:#555;
+}
+.btn{
+  text-decoration:none;
+  background:#0b5ed7;
+  color:white;
+  padding:12px;
+  border-radius:8px;
+  text-align:center;
+  font-weight:bold;
+  font-size:14px;
+}
+.btn:hover{
+  background:#094db1;
+}
+.search{
+  margin-bottom:20px;
+}
+.search input{
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #ccd3e0;
+  font-size:15px;
+}
+.footer{
+  text-align:center;
+  padding:20px;
+  color:#666;
+  font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Verification & Exam Portal</h1>
+  <p>All ID Card • OMR • Member • Exam Links</p>
+</div>
+
+<div class="container">
+
+  <div class="search">
+    <input type="text" id="searchBox" placeholder="Search page name..." onkeyup="filterCards()">
+  </div>
+
+  <div class="grid" id="cardGrid">
+
+    <div class="card">
+      <h3>Gau Raksha Dal ID Verification</h3>
+      <p>Verify Gau Raksha Dal ID cards.</p>
+      <a class="btn" href="gau-raksha-dal-id-card-verification.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>Gau Raksha Dal Identity Card</h3>
+      <p>View / print identity card.</p>
+      <a class="btn" href="gau-raksha-dal-identity-card.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>Identity Card</h3>
+      <p>Generic identity card template.</p>
+      <a class="btn" href="identity-card.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>Member Verification</h3>
+      <p>Verify member details.</p>
+      <a class="btn" href="member-verification.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>OMR Sheet</h3>
+      <p>OMR answer sheet interface.</p>
+      <a class="btn" href="omr-sheet.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>OMR Verification</h3>
+      <p>Check OMR records.</p>
+      <a class="btn" href="omr-verify.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Candidate Verification</h3>
+      <p>Candidate record verification.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-canditate-verification.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Junior Admit Card</h3>
+      <p>Download junior admit card.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-junior-admit-card.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Junior Result</h3>
+      <p>Check junior result.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-junior-result.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Result Verification</h3>
+      <p>Verify published results.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-result-verification.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Senior Admit Card</h3>
+      <p>Download senior admit card.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-senior-admit-card.html">Open Page</a>
+    </div>
+
+    <div class="card">
+      <h3>YGM 2026 Senior Result</h3>
+      <p>Check senior result.</p>
+      <a class="btn" href="yuva-gyan-mahotsav-2026-senior-result.html">Open Page</a>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  Static Portal Index • Ready for Cloudflare Pages Deployment
+</div>
+
+<script>
+function filterCards(){
+  let input = document.getElementById('searchBox').value.toLowerCase();
+  let cards = document.querySelectorAll('#cardGrid .card');
+  cards.forEach(card => {
+    let text = card.innerText.toLowerCase();
+    card.style.display = text.includes(input) ? 'flex' : 'none';
+  });
+}
+</script>
+
+</body>
+</html>
