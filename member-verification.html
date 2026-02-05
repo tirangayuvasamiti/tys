@@ -1,0 +1,292 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* 2. CSS Styling for the Verification Card */
+  #tym-verification-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 450px;
+    margin: 40px auto;
+    background: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    overflow: hidden;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+  }
+
+  /* --- FIX START: Increased bottom padding here --- */
+  .tym-header {
+    background: linear-gradient(135deg, #ff9933 0%, #ffffff 50%, #138808 100%);
+    /* Top: 30px, Right: 20px, Bottom: 70px (Space for photo), Left: 20px */
+    padding: 30px 20px 70px 20px; 
+    color: #333;
+    position: relative;
+  }
+  /* --- FIX END --- */
+
+  .tym-header h2 {
+    margin: 0;
+    font-size: 1.4rem; /* Slightly larger text */
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #000;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8); /* readable on any color */
+  }
+
+  .tym-photo-wrapper {
+    margin-top: -60px; /* Pulls photo up into the header */
+    position: relative;
+    display: inline-block;
+    z-index: 10;
+  }
+
+  .tym-photo {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 5px solid #fff;
+    object-fit: cover;
+    background-color: #f0f0f0;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+  }
+
+  .tym-status {
+    display: inline-block;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 15px 0;
+  }
+
+  .status-verified {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+
+  .status-failed {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+
+  .tym-details {
+    padding: 0 20px 30px 20px;
+  }
+
+  .tym-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 5px 0;
+  }
+
+  .tym-designation {
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+
+  .tym-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    text-align: left;
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .tym-field-label {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .tym-field-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    word-break: break-word; /* Prevents long text breaking layout */
+  }
+
+  #manual-search {
+    padding: 20px;
+    display: none;
+  }
+  
+  #manual-search input {
+    padding: 10px;
+    width: 70%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  
+  #manual-search button {
+    padding: 10px 15px;
+    background: #ff9933; /* Theme color */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #ff9933;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+
+<div id="tym-verification-container">
+  <div class="tym-header">
+    <h2>Tiranga Yuva Samiti</h2>
+  </div>
+
+  <div id="loading-spinner" class="loader"></div>
+
+  <div id="manual-search">
+    <p style="margin-bottom:10px; font-weight:600;">Enter Member ID to verify</p>
+    <input type="text" id="member-id-input" placeholder="e.g. TYM-1">
+    <button onclick="manualVerify()">Verify</button>
+  </div>
+
+  <div id="result-card" style="display:none;">
+    <div class="tym-photo-wrapper">
+      <img id="v-photo" class="tym-photo" src="" alt="Member Photo" onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+    </div>
+    
+    <div>
+      <span id="v-status" class="tym-status">Verifying...</span>
+    </div>
+
+    <h3 id="v-name" class="tym-name">--</h3>
+    <div id="v-designation-main" class="tym-designation">--</div>
+
+    <div class="tym-details">
+      <div class="tym-grid">
+        <div>
+          <div class="tym-field-label">Member ID</div>
+          <div id="v-id" class="tym-field-value">--</div>
+        </div>
+        <div>
+          <div class="tym-field-label">Department</div>
+          <div id="v-department" class="tym-field-value">--</div>
+        </div>
+        <div>
+          <div class="tym-field-label">Joined Date</div>
+          <div id="v-date" class="tym-field-value">--</div>
+        </div>
+        <div>
+          <div class="tym-field-label">Father's Name</div>
+          <div id="v-father" class="tym-field-value">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 3. Configuration
+  const SHEET_ID = '1p1ynKWyRErPwczTcMkffZfQ7dhOiV9buv_gIVRK3uh0';
+  const SHEET_GID = '85144492';
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+
+  function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+  }
+
+  function verifyMember(searchId) {
+    const spinner = document.getElementById('loading-spinner');
+    const resultCard = document.getElementById('result-card');
+    const manualSearch = document.getElementById('manual-search');
+    
+    spinner.style.display = 'block';
+    resultCard.style.display = 'none';
+    manualSearch.style.display = 'none';
+
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      complete: function(results) {
+        spinner.style.display = 'none';
+        const data = results.data;
+        
+        // Find member (Clean whitespace and lowercase for better matching)
+        const member = data.find(row => 
+          row.id && row.id.toString().trim().toLowerCase() === searchId.toString().trim().toLowerCase()
+        );
+
+        resultCard.style.display = 'block';
+        const statusEl = document.getElementById('v-status');
+
+        if (member) {
+          statusEl.innerText = "✔ Verified Member";
+          statusEl.className = "tym-status status-verified";
+
+          const fullName = `${member.firstname} ${member.lastname || ''}`.trim();
+
+          document.getElementById('v-photo').src = member.photo_url || 'https://via.placeholder.com/150?text=No+Image';
+          document.getElementById('v-name').innerText = fullName;
+          document.getElementById('v-designation-main').innerText = member.designation || 'Member';
+          
+          document.getElementById('v-id').innerText = member.id;
+          document.getElementById('v-department').innerText = member.department || 'N/A';
+          document.getElementById('v-date').innerText = member.joined || 'N/A';
+          document.getElementById('v-father').innerText = member.father_name || 'N/A';
+
+        } else {
+          statusEl.innerText = "⚠ Invalid Member ID";
+          statusEl.className = "tym-status status-failed";
+          
+          document.getElementById('v-photo').src = 'https://via.placeholder.com/150?text=Invalid';
+          document.getElementById('v-name').innerText = "Unknown";
+          document.getElementById('v-designation-main').innerText = "";
+          document.getElementById('v-id').innerText = searchId;
+          document.getElementById('v-department').innerText = "--";
+          document.getElementById('v-date').innerText = "--";
+          document.getElementById('v-father').innerText = "--";
+        }
+      },
+      error: function(err) {
+        console.error("Error fetching sheet:", err);
+        spinner.style.display = 'none';
+        manualSearch.style.display = 'block';
+        alert("Could not connect to database.");
+      }
+    });
+  }
+
+  function manualVerify() {
+    const inputId = document.getElementById('member-id-input').value;
+    if(inputId) {
+      verifyMember(inputId);
+    } else {
+      alert("Please enter a Member ID");
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlId = getQueryParam('id'); 
+    
+    if (urlId) {
+      verifyMember(urlId);
+    } else {
+      document.getElementById('loading-spinner').style.display = 'none';
+      document.getElementById('manual-search').style.display = 'block';
+    }
+  });
+</script>
