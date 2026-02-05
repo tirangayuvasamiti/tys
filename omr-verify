@@ -1,0 +1,58 @@
+<style>
+  .omr-wp-box {
+    background: #f9f9f9; border: 1px solid #ddd; padding: 20px;
+    border-radius: 8px; text-align: center; max-width: 400px; margin: 0 auto;
+  }
+  .omr-wp-box input { width: 90%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; }
+  .omr-wp-box button { width: 95%; padding: 12px; background: #2271b1; color: #fff; border: none; cursor: pointer; }
+  .omr-wp-box button:hover { background: #135e96; }
+  .omr-res { display: none; margin-top: 15px; padding: 10px; border: 1px solid transparent; }
+  .omr-ok { background: #e7f5ea; color: #0a4616; border-color: #c1eac5; }
+  .omr-fail { background: #fbeaea; color: #8a1f1f; border-color: #f5c6c6; }
+</style>
+
+<div class="omr-wp-box">
+  <h3>Check OMR Status</h3>
+  <input type="text" id="wp_omr_in" placeholder="Enter OMR Number">
+  <button id="wp_omr_go">Verify</button>
+  <div id="wp_omr_out" class="omr-res"></div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const URL = "https://docs.google.com/spreadsheets/d/18wMtp0nohzqSVpk4uEpBheSExEHKr6pW6s14yeAgirk/gviz/tq?tqx=out:csv&gid=0";
+  const KEY = "omr_number";
+  
+  const inp = document.getElementById("wp_omr_in");
+  const btn = document.getElementById("wp_omr_go");
+  const out = document.getElementById("wp_omr_out");
+
+  // Auto-Verify logic
+  const q = new URLSearchParams(window.location.search).get("id");
+  if(q) { inp.value = q; check(q); }
+
+  btn.onclick = () => check(inp.value.trim());
+
+  function check(val) {
+    if(!val) return;
+    btn.innerText = "Checking..."; btn.disabled = true; out.style.display = "none";
+    
+    fetch(URL).then(r=>r.text()).then(d => {
+      const rows = d.split("\n").map(r => r.split(",").map(c => c.replace(/^"|"$/g, '').trim()));
+      const h = rows[0].findIndex(x => x.toLowerCase() === KEY);
+      if(h<0) { alert("Column error"); return; }
+      
+      const found = rows.slice(1).some(r => r[h] === val);
+      
+      out.style.display = "block";
+      if(found) {
+        out.className = "omr-res omr-ok";
+        out.innerHTML = "✅ Verified: " + val;
+      } else {
+        out.className = "omr-res omr-fail";
+        out.innerHTML = "❌ Not Found";
+      }
+    }).finally(() => { btn.innerText = "Verify"; btn.disabled = false; });
+  }
+});
+</script>
