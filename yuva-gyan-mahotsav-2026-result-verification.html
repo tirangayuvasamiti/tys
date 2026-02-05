@@ -1,0 +1,194 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+<div id="tys-verify-wrapper">
+
+  <style>
+    /* SCOPED STYLES */
+    #tys-verify-wrapper {
+      font-family: 'Montserrat', sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      color: #333;
+    }
+    #tys-verify-wrapper * { box-sizing: border-box; }
+
+    .v-loader { color: #64748b; font-weight: 600; padding: 40px; }
+    
+    .v-res-box { display: none; background: white; padding: 25px 20px; border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    .v-badge {
+      display: inline-block; padding: 8px 16px; border-radius: 50px; 
+      font-weight: 800; font-size: 13px; text-transform: uppercase; margin-bottom: 20px;
+    }
+    .v-badge.success { background: #dcfce7; color: #166534; border: 1px solid #166534; }
+    .v-badge.fail { background: #fee2e2; color: #991b1b; border: 1px solid #991b1b; }
+
+    .v-img { width: 120px; height: 140px; object-fit: cover; border-radius: 8px; border: 3px solid #f1f5f9; margin-bottom: 10px; }
+    
+    .v-info-grid { text-align: left; margin-bottom: 15px; }
+    .v-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
+    .v-key { font-weight: 600; color: #64748b; }
+    .v-val { font-weight: 800; color: #0f172a; text-align: right; }
+
+    /* Result Specific Styles */
+    .v-score-board {
+        background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+        padding: 15px; margin-top: 15px;
+    }
+    .v-sb-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .v-sb-row:last-child { margin-bottom: 0; border-top: 1px solid #bae6fd; padding-top: 8px; }
+    .v-sb-lbl { font-size: 12px; font-weight: 700; color: #002347; text-transform: uppercase; }
+    .v-sb-val { font-size: 16px; font-weight: 800; color: #0284c7; }
+    .v-rank-high { color: #16a34a; font-size: 18px; }
+  </style>
+
+  <h3 style="margin-top:0; color:#002347;">Scorecard Verification</h3>
+
+  <div id="v-loading" class="v-loader">
+    <i class="fa-solid fa-spinner fa-spin"></i> Verifying Result...
+  </div>
+
+  <div id="v-success" class="v-res-box">
+    <div class="v-badge success"><i class="fa-solid fa-check-circle"></i> Official Result Found</div>
+    
+    <div style="display:flex; justify-content:center;">
+       <img id="v-photo-display" class="v-img" src="" alt="Candidate">
+    </div>
+
+    <div class="v-info-grid">
+        <div class="v-row"><span class="v-key">Name:</span> <span class="v-val" id="v-name"></span></div>
+        <div class="v-row"><span class="v-key">Roll No:</span> <span class="v-val" id="v-roll"></span></div>
+        <div class="v-row"><span class="v-key">Father's Name:</span> <span class="v-val" id="v-father"></span></div>
+    </div>
+
+    <div class="v-score-board">
+        <div class="v-sb-row">
+            <span class="v-sb-lbl">Marks Obtained</span>
+            <span class="v-sb-val" id="v-marks"></span>
+        </div>
+        <div class="v-sb-row">
+            <span class="v-sb-lbl">Total Marks</span>
+            <span class="v-sb-val">360</span>
+        </div>
+        <div class="v-sb-row">
+            <span class="v-sb-lbl">Percentage</span>
+            <span class="v-sb-val" id="v-per"></span>
+        </div>
+        <div class="v-sb-row" style="align-items:center;">
+            <span class="v-sb-lbl">Official Rank</span>
+            <span class="v-sb-val v-rank-high" id="v-rank"></span>
+        </div>
+    </div>
+    
+    <div style="font-size:10px; color:#999; margin-top:10px;">
+        *Data fetched directly from Tiranga Yuva Samiti Official Records.
+    </div>
+  </div>
+
+  <div id="v-fail" class="v-res-box">
+    <div class="v-badge fail"><i class="fa-solid fa-triangle-exclamation"></i> Record Not Found</div>
+    <p style="font-size:14px; color:#555;">
+      The Roll Number provided in this QR code does not exist in our result database. 
+      <br><br>
+      This scorecard may be invalid or forged.
+    </p>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  // --- CONFIGURATION ---
+  // Sheet 1: Main DB
+  const SHEET_ID_1 = "1blxXu3J9iuR3sVHILbZP54soLsouSrY_219mmHtl3Y0";
+  // Sheet 2: Secondary (if applicable)
+  const SHEET_ID_2 = "1digurE3sdXV8uAf4fpe1HyGuCKvA2ciCdtleg2_Gofg"; 
+  
+  const BASE_URL = "https://docs.google.com/spreadsheets/d/";
+  const URL_PARAMS = "/export?format=csv";
+  
+  // Construct full URLs
+  const CSV_URL_1 = BASE_URL + SHEET_ID_1 + URL_PARAMS;
+  const CSV_URL_2 = BASE_URL + SHEET_ID_2 + URL_PARAMS;
+
+  const TOTAL_MARKS = 360;
+
+  // --- LOGIC ---
+
+  // Get URL Params
+  const p = new URLSearchParams(window.location.search);
+  const qRoll = p.get('roll');
+
+  if(!qRoll) {
+    document.getElementById('v-loading').style.display = 'none';
+    document.getElementById('v-fail').style.display = 'block';
+    return;
+  }
+
+  // Fetch BOTH sheets in parallel
+  Promise.all([
+    fetch(CSV_URL_1 + "&t=" + Date.now()).then(r => r.arrayBuffer()),
+    fetch(CSV_URL_2 + "&t=" + Date.now()).then(r => r.arrayBuffer())
+  ])
+  .then(([buffer1, buffer2]) => {
+      // Parse Sheet 1
+      const wb1 = XLSX.read(buffer1, {type:"array"});
+      const data1 = XLSX.utils.sheet_to_json(wb1.Sheets[wb1.SheetNames[0]]);
+
+      // Parse Sheet 2
+      const wb2 = XLSX.read(buffer2, {type:"array"});
+      const data2 = XLSX.utils.sheet_to_json(wb2.Sheets[wb2.SheetNames[0]]);
+
+      // Merge Data
+      const combinedData = [...data1, ...data2];
+      
+      const user = combinedData.find(u => {
+         let uRoll = String(u['roll_number'] || '').trim();
+         return uRoll === qRoll;
+      });
+
+      document.getElementById('v-loading').style.display = 'none';
+
+      if(user) {
+        // --- POPULATE DATA ---
+        document.getElementById('v-success').style.display = 'block';
+        
+        // Basic Info
+        document.getElementById('v-name').innerText = user['candidate_name'] || "N/A";
+        document.getElementById('v-roll').innerText = user['roll_number'];
+        document.getElementById('v-father').innerText = user['father_name'] || "N/A";
+        
+        // Result Logic
+        const marks = parseFloat(user['marks']) || 0;
+        const rank = user['rank'] || "N/A";
+        const per = ((marks / TOTAL_MARKS) * 100).toFixed(1);
+
+        document.getElementById('v-marks').innerText = marks;
+        document.getElementById('v-per').innerText = per + "%";
+        document.getElementById('v-rank').innerText = "#" + rank;
+        
+        // Photo
+        if(user['photo_url']) {
+           document.getElementById('v-photo-display').src = `https://wsrv.nl/?url=${encodeURIComponent(user['photo_url'])}&output=png`;
+        } else {
+           document.getElementById('v-photo-display').style.display = 'none';
+        }
+
+      } else {
+        document.getElementById('v-fail').style.display = 'block';
+      }
+  })
+  .catch(e => {
+       console.error(e);
+       document.getElementById('v-loading').innerText = "System Error. Please try again later.";
+  });
+
+})();
+</script>
