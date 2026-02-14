@@ -3,221 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OMR Auto-Scanner - OpenCV.js</title>
-    
-    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
-    
+    <title>Ultra Pro OMR Pixel Scanner</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
-        h1, h2 { text-align: center; color: var(--primary); }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        :root { --primary: #2563eb; --bg: #f1f5f9; --text: #1e293b; --success: #16a34a; --danger: #dc2626; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 15px; max-width: 1200px; margin: 0 auto; }
+        h1, h2 { text-align: center; color: var(--primary); margin-bottom: 5px; }
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
         
-        #statusBanner { background: #fef08a; color: #854d0e; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 20px; }
-        .ready { background: #bbf7d0 !important; color: #166534 !important; }
+        .panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); flex: 1; min-width: 300px; }
+        .canvas-container { flex: 2; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); text-align: center; position: relative; overflow: hidden; }
         
-        /* Fixed Canvas Display */
-        #workspace { width: 100%; text-align: center; margin-top: 20px; display: none; }
-        #omrCanvas { max-width: 100%; border: 3px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        canvas { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 4px; display: none; }
+        
+        .btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:hover { opacity: 0.9; }
+        .btn-grade { background: var(--success); font-size: 18px; margin-top: 20px; }
+        
+        /* Calibration Controls */
+        .control-group { margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .slider-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .slider-row label { font-size: 13px; font-weight: 600; width: 100px; }
+        .slider-row input[type="range"] { flex: 1; margin: 0 10px; }
+        .slider-row span { font-size: 12px; width: 40px; text-align: right; font-family: monospace; }
         
         /* Results Table */
-        .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center; }
-        .res-box { padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; }
-        .res-label { font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .res-val { font-size: 24px; font-weight: bold; margin-top: 5px; }
-        .text-green { color: #16a34a; } .text-red { color: #dc2626; }
-        .total-box { grid-column: 1 / -1; background: var(--primary); color: white; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; }
+        .results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; text-align: center; }
+        .res-box { padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; background: white; }
+        .res-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .res-val { font-size: 20px; font-weight: bold; margin-top: 3px; }
+        .text-green { color: var(--success); } .text-red { color: var(--danger); }
+        .total-box { grid-column: 1 / -1; background: var(--primary); color: white; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <h1>Yuva Gyan Mahotsav 2026</h1>
-    <h2 style="font-size: 1.2rem; margin-top: -10px;">AI Pixel Auto-Scanner</h2>
+    <h2 style="font-size: 1.1rem; color: #64748b;">Absolute Pixel-Mapping System</h2>
 
-    <div id="statusBanner">Loading OpenCV.js Vision Toolkit... Please wait.</div>
+    <div class="layout">
+        <div class="panel">
+            <label style="font-weight: bold; display: block; margin-bottom: 10px;">1. Upload Sheet</label>
+            <input type="file" id="fileUpload" accept="image/*" style="width: 100%; padding: 10px; border: 2px dashed #cbd5e1; border-radius: 8px;">
+            
+            <div class="control-group" id="calibrationTools" style="display: none;">
+                <h3 style="margin-top:0; font-size: 14px; color: var(--primary);">2. Calibration (Align the Blue Grid)</h3>
+                
+                <div class="slider-row">
+                    <label>Grid Y-Offset</label>
+                    <input type="range" id="startY" min="0.20" max="0.30" step="0.001" value="0.241">
+                    <span id="startY_val">0.241</span>
+                </div>
+                <div class="slider-row">
+                    <label>Row Spacing</label>
+                    <input type="range" id="rowGap" min="0.022" max="0.028" step="0.0001" value="0.0253">
+                    <span id="rowGap_val">0.025</span>
+                </div>
+                <div class="slider-row">
+                    <label>Grid X-Offset</label>
+                    <input type="range" id="startX" min="-0.05" max="0.05" step="0.001" value="0.0">
+                    <span id="startX_val">0.0</span>
+                </div>
+                <div class="slider-row">
+                    <label>Bubble Width</label>
+                    <input type="range" id="colSpread" min="0.05" max="0.07" step="0.001" value="0.058">
+                    <span id="colSpread_val">0.058</span>
+                </div>
 
-    <div class="card">
-        <h2>Upload Filled OMR Image</h2>
-        <input type="file" id="fileUpload" accept="image/*" disabled style="width: 100%; padding: 12px; border: 2px dashed #cbd5e1; border-radius: 8px; font-size: 16px;">
-        
-        <div id="workspace">
+                <button class="btn btn-grade" id="gradeBtn">3. Scan & Grade</button>
+            </div>
+
+            <div id="resultsCard" style="display: none;">
+                <div class="results-grid">
+                    <div class="res-box"><div class="res-label">Correct</div><div class="res-val text-green" id="rCorrect">0</div></div>
+                    <div class="res-box"><div class="res-label">Incorrect</div><div class="res-val text-red" id="rIncorrect">0</div></div>
+                    <div class="res-box"><div class="res-label">Unattempted</div><div class="res-val" id="rUnattempted">0</div></div>
+                    <div class="res-box"><div class="res-label">Pos. Score</div><div class="res-val text-green" id="rPos">0</div></div>
+                    <div class="res-box" style="grid-column: 1 / -1;"><div class="res-label">Neg. Score</div><div class="res-val text-red" id="rNeg">0</div></div>
+                </div>
+                <div class="total-box">TOTAL SCORE: <span id="rTotal">0</span></div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <p id="placeholderText" style="color: #94a3b8; margin-top: 50px;">Upload an image to view grid alignment...</p>
             <canvas id="omrCanvas"></canvas>
         </div>
     </div>
 
-    <div class="card" id="resultsCard" style="display: none;">
-        <h2>Evaluation Result</h2>
-        <div class="results-grid">
-            <div class="res-box"><div class="res-label">Correct</div><div class="res-val text-green" id="rCorrect">0</div></div>
-            <div class="res-box"><div class="res-label">Incorrect</div><div class="res-val text-red" id="rIncorrect">0</div></div>
-            <div class="res-box"><div class="res-label">Unattempted</div><div class="res-val" id="rUnattempted">0</div></div>
-            <div class="res-box"><div class="res-label">Pos. Score (+)</div><div class="res-val text-green" id="rPos">0</div></div>
-            <div class="res-box"><div class="res-label">Neg. Score (-)</div><div class="res-val text-red" id="rNeg">0</div></div>
-            <div class="res-box"><div class="res-label">Total Questions</div><div class="res-val">60</div></div>
-            <div class="total-box">TOTAL OBTAINED SCORE: <span id="rTotal">0</span></div>
-        </div>
-    </div>
-
     <script>
-        // Enable upload only when Computer Vision engine is ready
-        function onOpenCvReady() {
-            const banner = document.getElementById('statusBanner');
-            banner.innerText = '✔️ OpenCV Vision Toolkit Ready! You can now upload the image.';
-            banner.classList.add('ready');
-            document.getElementById('fileUpload').disabled = false;
-        }
-
-        // FULL 60-QUESTION MASTER KEY 
+        // EXACT MASTER KEY extracted from provided image
         const masterKey = {
-            1:'B', 2:'D', 3:'B', 4:'B', 5:'B', 6:'A', 7:'A', 8:'A', 9:'D', 10:'B', 11:'A', 12:'A', 13:'D', 14:'A',
-            15:'B', 16:'A', 17:'D', 18:'A', 19:'B', 20:'C', 21:'D', 22:'A', 23:'A', 24:'B', 25:'D', 26:'A', 27:'C', 28:'D', 29:'D', 30:'C',
-            31:'A', 32:'C', 33:'B', 34:'B', 35:'A', 36:'B', 37:'D', 38:'C', 39:'A', 40:'D',
-            41:'B', 42:'B', 43:'D', 44:'C', 45:'B', 46:'C', 47:'A', 48:'A', 49:'A', 50:'A', 51:'A', 52:'B', 53:'B', 54:'D', 55:'B', 56:'C', 57:'A', 58:'B', 59:'C', 60:'D'
+            1:'B', 2:'D', 3:'B', 4:'B', 5:'B', 6:'A', 7:'A', 8:'A', 9:'D', 10:'B', 11:'A', 12:'A', 13:'D', 14:'A', 15:'B', 16:'A', 17:'D', 18:'B', 19:'B', 20:'C',
+            21:'D', 22:'B', 23:'A', 24:'B', 25:'C', 26:'A', 27:'C', 28:'D', 29:'D', 30:'C', 31:'A', 32:'C', 33:'B', 34:'B', 35:'A', 36:'B', 37:'D', 38:'C', 39:'A', 40:'D',
+            41:'B', 42:'A', 43:'D', 44:'C', 45:'B', 46:'C', 47:'A', 48:'A', 49:'A', 50:'A', 51:'A', 52:'B', 53:'B', 54:'D', 55:'B', 56:'C', 57:'A', 58:'B', 59:'B', 60:'B'
         };
 
         const canvas = document.getElementById('omrCanvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let imgElement = new Image();
+        let isImageLoaded = false;
+        let evaluationDone = false;
+        let studentResults = {};
 
-        // Handle Image Upload & Display Bug Fix
+        // Base Grid Configuration (Percentages relative to image width/height)
+        let cfg = {
+            startY: 0.241,     // Top row Y percentage
+            rowGap: 0.0253,    // Y spacing between rows
+            startX: 0.0,       // Global X nudge
+            colSpread: 0.058,  // X spacing between A, B, C, D
+            baseX: [0.082, 0.400, 0.720], // Starting X for Column 1, 2, 3
+            radius: 0.012      // Bubble radius size
+        };
+
+        // UI Listeners for Calibration Sliders
+        const sliders = ['startY', 'rowGap', 'startX', 'colSpread'];
+        sliders.forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                cfg[id] = parseFloat(e.target.value);
+                document.getElementById(id + '_val').innerText = cfg[id].toFixed(3);
+                if(isImageLoaded) drawGridOverlay();
+            });
+        });
+
+        // Image Upload
         document.getElementById('fileUpload').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
-            const img = new Image();
-            img.onload = () => {
-                // BUG FIX: Set workspace to block FIRST so canvas has physical dimensions
-                document.getElementById('workspace').style.display = 'block';
+            imgElement.onload = () => {
+                isImageLoaded = true;
+                evaluationDone = false;
+                document.getElementById('placeholderText').style.display = 'none';
+                canvas.style.display = 'inline-block';
+                document.getElementById('calibrationTools').style.display = 'block';
+                document.getElementById('resultsCard').style.display = 'none';
                 
-                // Draw image at native resolution for highly accurate pixel scanning
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // Set canvas to native image resolution for perfect pixel math
+                canvas.width = imgElement.width;
+                canvas.height = imgElement.height;
                 
-                // Run the Computer Vision Auto-Scanner
-                setTimeout(() => runComputerVisionScan(img.width, img.height), 100); 
+                drawGridOverlay();
             };
-            img.src = URL.createObjectURL(file);
+            imgElement.src = URL.createObjectURL(file);
         });
 
-        function runComputerVisionScan(imgW, imgH) {
-            let studentAnswers = {};
+        // Get coordinates for all 4 bubbles of a specific question
+        function getBubbleCoords(qNum) {
+            let colIdx, slot;
             
-            // 1. Read Image into OpenCV
-            let src = cv.imread(canvas);
-            let gray = new cv.Mat();
-            let thresh = new cv.Mat();
+            // Map question number to physical row slots (accounting for header text gaps)
+            if (qNum <= 20) {
+                colIdx = 0;
+                slot = qNum - 1;
+                if (qNum > 7) slot += 1;  // Hindi gap
+                if (qNum > 14) slot += 1; // Mental Ability gap
+            } else if (qNum <= 40) {
+                colIdx = 1;
+                slot = qNum - 21;
+                if (qNum > 22) slot += 1; // Comp Sci gap
+                if (qNum > 30) slot += 1; // Gen Knowledge gap
+            } else {
+                colIdx = 2;
+                slot = qNum - 41;
+                if (qNum > 55) slot += 2; // Youth Awareness gap (looks slightly larger on this sheet)
+            }
+
+            let y = canvas.height * (cfg.startY + (slot * cfg.rowGap));
+            let startX = canvas.width * (cfg.baseX[colIdx] + cfg.startX);
+            let spread = canvas.width * cfg.colSpread;
+
+            return {
+                'A': { x: startX, y: y },
+                'B': { x: startX + spread, y: y },
+                'C': { x: startX + (spread * 2), y: y },
+                'D': { x: startX + (spread * 3), y: y }
+            };
+        }
+
+        // Draw the image and overlay
+        function drawGridOverlay() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
             
-            // 2. Convert to Grayscale & Invert (Black ink becomes White pixels, Paper becomes Black)
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-            cv.threshold(gray, thresh, 140, 255, cv.THRESH_BINARY_INV);
+            const r = canvas.width * cfg.radius;
 
-            // 3. Mathematical mapping based exactly on your provided template link
-            // Coordinates mapped as percentages of total image Width/Height
-            const zones = [
-                { start: 1, end: 14, x: 0.13, y: 0.265, w: 0.165, h: 0.25 },
-                { start: 15, end: 40, x: 0.425, y: 0.265, w: 0.165, h: 0.465 },
-                { start: 41, end: 60, x: 0.72, y: 0.265, w: 0.165, h: 0.36 }
-            ];
+            for (let q = 1; q <= 60; q++) {
+                let coords = getBubbleCoords(q);
+                
+                ['A', 'B', 'C', 'D'].forEach(opt => {
+                    let pt = coords[opt];
+                    
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, r, 0, 2 * Math.PI);
+                    ctx.lineWidth = 3;
 
-            const options = ['A', 'B', 'C', 'D'];
-
-            zones.forEach(zone => {
-                const numQuestions = (zone.end - zone.start) + 1;
-                const zonePixelX = zone.x * imgW;
-                const zonePixelY = zone.y * imgH;
-                const zonePixelW = zone.w * imgW;
-                const zonePixelH = zone.h * imgH;
-
-                const bubbleW = zonePixelW / 4;
-                const rowH = zonePixelH / numQuestions;
-
-                for (let i = 0; i < numQuestions; i++) {
-                    const qNum = zone.start + i;
-                    let darkCount = 0;
-                    let chosenAnswer = null;
-
-                    for (let j = 0; j < 4; j++) {
-                        // Find the exact center of the bubble
-                        const centerX = zonePixelX + (j * bubbleW) + (bubbleW / 2);
-                        const centerY = zonePixelY + (i * rowH) + (rowH / 2);
+                    if (!evaluationDone) {
+                        // Calibration Mode: Draw faint blue target rings
+                        ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)';
+                        ctx.stroke();
+                    } else {
+                        // Graded Mode: Draw over the bubbles based on results
+                        let userMark = studentResults[q];
+                        let correctMark = masterKey[q];
                         
-                        // Define a small bounding box to sample pixels inside the bubble
-                        const sampleRadius = Math.min(bubbleW, rowH) * 0.3; 
-                        const rect = new cv.Rect(
-                            Math.max(0, centerX - sampleRadius), 
-                            Math.max(0, centerY - sampleRadius), 
-                            sampleRadius * 2, 
-                            sampleRadius * 2
-                        );
+                        if (userMark === opt) {
+                            // Where the user marked
+                            ctx.strokeStyle = (userMark === correctMark) ? '#16a34a' : '#dc2626'; // Green if right, Red if wrong
+                            ctx.stroke();
+                        }
                         
-                        // Extract just that bubble's pixels from the inverted threshold image
-                        let roi = thresh.roi(rect);
-                        // Calculate how many "ink" pixels are inside
-                        let pixelDensity = cv.countNonZero(roi); 
-                        let totalPixels = rect.width * rect.height;
-                        let fillPercentage = (pixelDensity / totalPixels) * 100;
-                        roi.delete();
-
-                        // Visual Debugging: Draw blue boxes where the scanner is looking
-                        ctx.beginPath();
-                        ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)';
-                        ctx.lineWidth = 2;
-                        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-
-                        // If more than 35% of the area is dark ink, consider it filled
-                        if (fillPercentage > 35) {
-                            darkCount++;
-                            chosenAnswer = options[j];
-
-                            // Determine if correct or wrong for visual overlay
-                            let isCorrect = (options[j] === masterKey[qNum]);
-                            
-                            // Draw Green or Red thick circle over the user's mark
-                            ctx.beginPath();
-                            ctx.arc(centerX, centerY, sampleRadius * 1.5, 0, 2 * Math.PI);
-                            ctx.lineWidth = 6;
-                            ctx.strokeStyle = isCorrect ? '#16a34a' : '#dc2626'; // Green if right, Red if wrong
+                        // Always show the correct answer in faint green if they missed it
+                        if (correctMark === opt && userMark !== opt) {
+                            ctx.strokeStyle = 'rgba(22, 163, 74, 0.5)';
                             ctx.stroke();
                         }
                     }
-
-                    // Handle Invalid / Multiple marks
-                    if (darkCount === 1) {
-                        studentAnswers[qNum] = chosenAnswer;
-                    } else if (darkCount > 1) {
-                        studentAnswers[qNum] = 'MULTIPLE'; // Counts as incorrect
-                    } else {
-                        studentAnswers[qNum] = null; // Unattempted
-                    }
-                }
-            });
-
-            // Cleanup OpenCV memory
-            src.delete(); gray.delete(); thresh.delete();
-
-            // Run Grading Engine
-            gradeExam(studentAnswers);
+                });
+            }
         }
 
-        // Exact Grading Math (+3, -1, 0)
-        function gradeExam(answers) {
+        // The Engine: Read pixel darkness
+        document.getElementById('gradeBtn').addEventListener('click', () => {
+            if (!isImageLoaded) return;
+            
+            // Re-draw clean image to scan pure pixels without overlay lines
+            ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+            
+            const r = canvas.width * cfg.radius;
+            // Scan an area slightly smaller than the full bubble to avoid borders
+            const scanR = r * 0.6; 
+
+            studentResults = {};
             let correct = 0, incorrect = 0, unattempted = 0;
 
-            for (let i = 1; i <= 60; i++) {
-                if (!answers[i]) {
-                    unattempted++;
-                } else if (answers[i] === masterKey[i]) {
-                    correct++;
-                } else {
+            for (let q = 1; q <= 60; q++) {
+                let coords = getBubbleCoords(q);
+                let darkCount = 0;
+                let markedOpt = null;
+
+                ['A', 'B', 'C', 'D'].forEach(opt => {
+                    let pt = coords[opt];
+                    // Get pixel data inside the bounding box of the bubble center
+                    let imgData = ctx.getImageData(pt.x - scanR, pt.y - scanR, scanR * 2, scanR * 2).data;
+                    
+                    let totalBrightness = 0;
+                    let pixels = imgData.length / 4;
+                    
+                    for (let i = 0; i < imgData.length; i += 4) {
+                        // Grayscale average of R, G, B
+                        totalBrightness += (imgData[i] + imgData[i+1] + imgData[i+2]) / 3;
+                    }
+                    
+                    let avgBrightness = totalBrightness / pixels;
+
+                    // If average color is darker than 130 (out of 255), it is filled ink
+                    if (avgBrightness < 130) {
+                        darkCount++;
+                        markedOpt = opt;
+                    }
+                });
+
+                if (darkCount === 1) {
+                    studentResults[q] = markedOpt;
+                    if (markedOpt === masterKey[q]) correct++;
+                    else incorrect++;
+                } else if (darkCount > 1) {
+                    studentResults[q] = 'MULTIPLE'; // Invalid
                     incorrect++;
+                } else {
+                    studentResults[q] = null;
+                    unattempted++;
                 }
             }
 
+            // Calculate exact scoring based on constraints (+3, -1, 0)
             const posScore = correct * 3;
             const negScore = incorrect * 1; 
             const totalScore = posScore - negScore;
 
-            // Update Screen
+            // Update UI
             document.getElementById('rCorrect').innerText = correct;
             document.getElementById('rIncorrect').innerText = incorrect;
             document.getElementById('rUnattempted').innerText = unattempted;
@@ -226,8 +290,11 @@
             document.getElementById('rTotal').innerText = totalScore;
 
             document.getElementById('resultsCard').style.display = 'block';
-            document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
-        }
+            
+            // Draw the graded overlay
+            evaluationDone = true;
+            drawGridOverlay();
+        });
     </script>
 </body>
 </html>
