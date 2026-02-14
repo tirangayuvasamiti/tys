@@ -1,198 +1,233 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Verification & Exam Portal Index</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body{
-  font-family: Arial, sans-serif;
-  margin:0;
-  background: linear-gradient(135deg,#e9f2ff,#f7f9fc);
-}
-.header{
-  background:#0b5ed7;
-  color:white;
-  padding:28px 15px;
-  text-align:center;
-}
-.header h1{
-  margin:0;
-  font-size:28px;
-}
-.header p{
-  margin:8px 0 0;
-  opacity:.95;
-}
-.container{
-  max-width:1000px;
-  margin:30px auto;
-  padding:0 15px;
-}
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
-  gap:18px;
-}
-.card{
-  background:white;
-  border-radius:14px;
-  padding:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,.08);
-  transition:.25s;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-}
-.card:hover{
-  transform:translateY(-4px);
-  box-shadow:0 10px 24px rgba(0,0,0,.12);
-}
-.card h3{
-  margin:0 0 10px;
-  font-size:18px;
-  color:#0b5ed7;
-}
-.card p{
-  margin:0 0 16px;
-  font-size:14px;
-  color:#555;
-}
-.btn{
-  text-decoration:none;
-  background:#0b5ed7;
-  color:white;
-  padding:12px;
-  border-radius:8px;
-  text-align:center;
-  font-weight:bold;
-  font-size:14px;
-}
-.btn:hover{
-  background:#094db1;
-}
-.search{
-  margin-bottom:20px;
-}
-.search input{
-  width:100%;
-  padding:14px;
-  border-radius:10px;
-  border:1px solid #ccd3e0;
-  font-size:15px;
-}
-.footer{
-  text-align:center;
-  padding:20px;
-  color:#666;
-  font-size:13px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMR Auto-Scanner - OpenCV.js</title>
+    
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; max-width: 1000px; margin: 0 auto; }
+        h1, h2 { text-align: center; color: var(--primary); }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        
+        #statusBanner { background: #fef08a; color: #854d0e; padding: 10px; text-align: center; font-weight: bold; border-radius: 8px; margin-bottom: 20px; }
+        .ready { background: #bbf7d0 !important; color: #166534 !important; }
+        
+        /* Fixed Canvas Display */
+        #workspace { width: 100%; text-align: center; margin-top: 20px; display: none; }
+        #omrCanvas { max-width: 100%; border: 3px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        
+        /* Results Table */
+        .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center; }
+        .res-box { padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; }
+        .res-label { font-size: 14px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .res-val { font-size: 24px; font-weight: bold; margin-top: 5px; }
+        .text-green { color: #16a34a; } .text-red { color: #dc2626; }
+        .total-box { grid-column: 1 / -1; background: var(--primary); color: white; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>Verification & Exam Portal</h1>
-  <p>All ID Card • OMR • Member • Exam Links</p>
-</div>
+    <h1>Yuva Gyan Mahotsav 2026</h1>
+    <h2 style="font-size: 1.2rem; margin-top: -10px;">AI Pixel Auto-Scanner</h2>
 
-<div class="container">
-
-  <div class="search">
-    <input type="text" id="searchBox" placeholder="Search page name..." onkeyup="filterCards()">
-  </div>
-
-  <div class="grid" id="cardGrid">
+    <div id="statusBanner">Loading OpenCV.js Vision Toolkit... Please wait.</div>
 
     <div class="card">
-      <h3>Gau Raksha Dal ID Verification</h3>
-      <p>Verify Gau Raksha Dal ID cards.</p>
-      <a class="btn" href="gau-raksha-dal-id-card-verification.html">Open Page</a>
+        <h2>Upload Filled OMR Image</h2>
+        <input type="file" id="fileUpload" accept="image/*" disabled style="width: 100%; padding: 12px; border: 2px dashed #cbd5e1; border-radius: 8px; font-size: 16px;">
+        
+        <div id="workspace">
+            <canvas id="omrCanvas"></canvas>
+        </div>
     </div>
 
-    <div class="card">
-      <h3>Gau Raksha Dal Identity Card</h3>
-      <p>View / print identity card.</p>
-      <a class="btn" href="gau-raksha-dal-identity-card.html">Open Page</a>
+    <div class="card" id="resultsCard" style="display: none;">
+        <h2>Evaluation Result</h2>
+        <div class="results-grid">
+            <div class="res-box"><div class="res-label">Correct</div><div class="res-val text-green" id="rCorrect">0</div></div>
+            <div class="res-box"><div class="res-label">Incorrect</div><div class="res-val text-red" id="rIncorrect">0</div></div>
+            <div class="res-box"><div class="res-label">Unattempted</div><div class="res-val" id="rUnattempted">0</div></div>
+            <div class="res-box"><div class="res-label">Pos. Score (+)</div><div class="res-val text-green" id="rPos">0</div></div>
+            <div class="res-box"><div class="res-label">Neg. Score (-)</div><div class="res-val text-red" id="rNeg">0</div></div>
+            <div class="res-box"><div class="res-label">Total Questions</div><div class="res-val">60</div></div>
+            <div class="total-box">TOTAL OBTAINED SCORE: <span id="rTotal">0</span></div>
+        </div>
     </div>
 
-    <div class="card">
-      <h3>Identity Card</h3>
-      <p>Generic identity card template.</p>
-      <a class="btn" href="identity-card.html">Open Page</a>
-    </div>
+    <script>
+        // Enable upload only when Computer Vision engine is ready
+        function onOpenCvReady() {
+            const banner = document.getElementById('statusBanner');
+            banner.innerText = '✔️ OpenCV Vision Toolkit Ready! You can now upload the image.';
+            banner.classList.add('ready');
+            document.getElementById('fileUpload').disabled = false;
+        }
 
-    <div class="card">
-      <h3>Member Verification</h3>
-      <p>Verify member details.</p>
-      <a class="btn" href="member-verification.html">Open Page</a>
-    </div>
+        // FULL 60-QUESTION MASTER KEY 
+        const masterKey = {
+            1:'B', 2:'D', 3:'B', 4:'B', 5:'B', 6:'A', 7:'A', 8:'A', 9:'D', 10:'B', 11:'A', 12:'A', 13:'D', 14:'A',
+            15:'B', 16:'A', 17:'D', 18:'A', 19:'B', 20:'C', 21:'D', 22:'A', 23:'A', 24:'B', 25:'D', 26:'A', 27:'C', 28:'D', 29:'D', 30:'C',
+            31:'A', 32:'C', 33:'B', 34:'B', 35:'A', 36:'B', 37:'D', 38:'C', 39:'A', 40:'D',
+            41:'B', 42:'B', 43:'D', 44:'C', 45:'B', 46:'C', 47:'A', 48:'A', 49:'A', 50:'A', 51:'A', 52:'B', 53:'B', 54:'D', 55:'B', 56:'C', 57:'A', 58:'B', 59:'C', 60:'D'
+        };
 
-    <div class="card">
-      <h3>OMR Sheet</h3>
-      <p>OMR answer sheet interface.</p>
-      <a class="btn" href="omr-sheet.html">Open Page</a>
-    </div>
+        const canvas = document.getElementById('omrCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    <div class="card">
-      <h3>OMR Verification</h3>
-      <p>Check OMR records.</p>
-      <a class="btn" href="omr-verify.html">Open Page</a>
-    </div>
+        // Handle Image Upload & Display Bug Fix
+        document.getElementById('fileUpload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const img = new Image();
+            img.onload = () => {
+                // BUG FIX: Set workspace to block FIRST so canvas has physical dimensions
+                document.getElementById('workspace').style.display = 'block';
+                
+                // Draw image at native resolution for highly accurate pixel scanning
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Run the Computer Vision Auto-Scanner
+                setTimeout(() => runComputerVisionScan(img.width, img.height), 100); 
+            };
+            img.src = URL.createObjectURL(file);
+        });
 
-    <div class="card">
-      <h3>YGM 2026 Candidate Verification</h3>
-      <p>Candidate record verification.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-canditate-verification.html">Open Page</a>
-    </div>
+        function runComputerVisionScan(imgW, imgH) {
+            let studentAnswers = {};
+            
+            // 1. Read Image into OpenCV
+            let src = cv.imread(canvas);
+            let gray = new cv.Mat();
+            let thresh = new cv.Mat();
+            
+            // 2. Convert to Grayscale & Invert (Black ink becomes White pixels, Paper becomes Black)
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+            cv.threshold(gray, thresh, 140, 255, cv.THRESH_BINARY_INV);
 
-    <div class="card">
-      <h3>YGM 2026 Junior Admit Card</h3>
-      <p>Download junior admit card.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-junior-admit-card.html">Open Page</a>
-    </div>
+            // 3. Mathematical mapping based exactly on your provided template link
+            // Coordinates mapped as percentages of total image Width/Height
+            const zones = [
+                { start: 1, end: 14, x: 0.13, y: 0.265, w: 0.165, h: 0.25 },
+                { start: 15, end: 40, x: 0.425, y: 0.265, w: 0.165, h: 0.465 },
+                { start: 41, end: 60, x: 0.72, y: 0.265, w: 0.165, h: 0.36 }
+            ];
 
-    <div class="card">
-      <h3>YGM 2026 Junior Result</h3>
-      <p>Check junior result.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-junior-result.html">Open Page</a>
-    </div>
+            const options = ['A', 'B', 'C', 'D'];
 
-    <div class="card">
-      <h3>YGM 2026 Result Verification</h3>
-      <p>Verify published results.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-result-verification.html">Open Page</a>
-    </div>
+            zones.forEach(zone => {
+                const numQuestions = (zone.end - zone.start) + 1;
+                const zonePixelX = zone.x * imgW;
+                const zonePixelY = zone.y * imgH;
+                const zonePixelW = zone.w * imgW;
+                const zonePixelH = zone.h * imgH;
 
-    <div class="card">
-      <h3>YGM 2026 Senior Admit Card</h3>
-      <p>Download senior admit card.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-senior-admit-card.html">Open Page</a>
-    </div>
+                const bubbleW = zonePixelW / 4;
+                const rowH = zonePixelH / numQuestions;
 
-    <div class="card">
-      <h3>YGM 2026 Senior Result</h3>
-      <p>Check senior result.</p>
-      <a class="btn" href="yuva-gyan-mahotsav-2026-senior-result.html">Open Page</a>
-    </div>
+                for (let i = 0; i < numQuestions; i++) {
+                    const qNum = zone.start + i;
+                    let darkCount = 0;
+                    let chosenAnswer = null;
 
-  </div>
-</div>
+                    for (let j = 0; j < 4; j++) {
+                        // Find the exact center of the bubble
+                        const centerX = zonePixelX + (j * bubbleW) + (bubbleW / 2);
+                        const centerY = zonePixelY + (i * rowH) + (rowH / 2);
+                        
+                        // Define a small bounding box to sample pixels inside the bubble
+                        const sampleRadius = Math.min(bubbleW, rowH) * 0.3; 
+                        const rect = new cv.Rect(
+                            Math.max(0, centerX - sampleRadius), 
+                            Math.max(0, centerY - sampleRadius), 
+                            sampleRadius * 2, 
+                            sampleRadius * 2
+                        );
+                        
+                        // Extract just that bubble's pixels from the inverted threshold image
+                        let roi = thresh.roi(rect);
+                        // Calculate how many "ink" pixels are inside
+                        let pixelDensity = cv.countNonZero(roi); 
+                        let totalPixels = rect.width * rect.height;
+                        let fillPercentage = (pixelDensity / totalPixels) * 100;
+                        roi.delete();
 
-<div class="footer">
-  Static Portal Index • Ready for Cloudflare Pages Deployment
-</div>
+                        // Visual Debugging: Draw blue boxes where the scanner is looking
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 
-<script>
-function filterCards(){
-  let input = document.getElementById('searchBox').value.toLowerCase();
-  let cards = document.querySelectorAll('#cardGrid .card');
-  cards.forEach(card => {
-    let text = card.innerText.toLowerCase();
-    card.style.display = text.includes(input) ? 'flex' : 'none';
-  });
-}
-</script>
+                        // If more than 35% of the area is dark ink, consider it filled
+                        if (fillPercentage > 35) {
+                            darkCount++;
+                            chosenAnswer = options[j];
 
+                            // Determine if correct or wrong for visual overlay
+                            let isCorrect = (options[j] === masterKey[qNum]);
+                            
+                            // Draw Green or Red thick circle over the user's mark
+                            ctx.beginPath();
+                            ctx.arc(centerX, centerY, sampleRadius * 1.5, 0, 2 * Math.PI);
+                            ctx.lineWidth = 6;
+                            ctx.strokeStyle = isCorrect ? '#16a34a' : '#dc2626'; // Green if right, Red if wrong
+                            ctx.stroke();
+                        }
+                    }
+
+                    // Handle Invalid / Multiple marks
+                    if (darkCount === 1) {
+                        studentAnswers[qNum] = chosenAnswer;
+                    } else if (darkCount > 1) {
+                        studentAnswers[qNum] = 'MULTIPLE'; // Counts as incorrect
+                    } else {
+                        studentAnswers[qNum] = null; // Unattempted
+                    }
+                }
+            });
+
+            // Cleanup OpenCV memory
+            src.delete(); gray.delete(); thresh.delete();
+
+            // Run Grading Engine
+            gradeExam(studentAnswers);
+        }
+
+        // Exact Grading Math (+3, -1, 0)
+        function gradeExam(answers) {
+            let correct = 0, incorrect = 0, unattempted = 0;
+
+            for (let i = 1; i <= 60; i++) {
+                if (!answers[i]) {
+                    unattempted++;
+                } else if (answers[i] === masterKey[i]) {
+                    correct++;
+                } else {
+                    incorrect++;
+                }
+            }
+
+            const posScore = correct * 3;
+            const negScore = incorrect * 1; 
+            const totalScore = posScore - negScore;
+
+            // Update Screen
+            document.getElementById('rCorrect').innerText = correct;
+            document.getElementById('rIncorrect').innerText = incorrect;
+            document.getElementById('rUnattempted').innerText = unattempted;
+            document.getElementById('rPos').innerText = `+${posScore}`;
+            document.getElementById('rNeg').innerText = `-${negScore}`;
+            document.getElementById('rTotal').innerText = totalScore;
+
+            document.getElementById('resultsCard').style.display = 'block';
+            document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>
